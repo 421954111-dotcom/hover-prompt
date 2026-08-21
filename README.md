@@ -33,6 +33,9 @@ Edge 扩展  →  127.0.0.1 桥接  →  codex CLI（已 ChatGPT 登录）  → 
 双击 `bridge\start-bridge.cmd`（或 `node bridge\server.mjs`）。首次运行会生成 `bridge/config.json`
 并在控制台打印一串 Token，拷下来。
 
+> `config.json` 含 token 和本机绝对路径，已 gitignore。仓库里的 `bridge/config.example.json`
+> 是字段说明，留空的项（token、codex.bin）首次运行会自动填好，不用手动改。
+
 **2. 装扩展**
 
 Edge → `edge://extensions` → 打开左下角「开发人员模式」→「加载解压缩的扩展」→ 选 `extension\` 目录。
