@@ -1,0 +1,74 @@
+{
+  "type": "object",
+  "properties": {
+    "prompt_en": {
+      "type": "string",
+      "description": "The main reverse-engineered generation prompt in English. One dense paragraph, comma-separated descriptors, ready to paste into any text-to-image tool."
+    },
+    "prompt_zh": {
+      "type": "string",
+      "description": "Chinese rendering of prompt_en, for the user to sanity-check accuracy."
+    },
+    "subject": {
+      "type": "string",
+      "description": "The main subject and what it is doing, in English."
+    },
+    "style": {
+      "type": "string",
+      "description": "Art style, genre, era, and any recognizable technique or movement, in English."
+    },
+    "composition": {
+      "type": "string",
+      "description": "Framing, camera angle, subject placement, depth layers, aspect feel, in English."
+    },
+    "lighting": {
+      "type": "string",
+      "description": "Light sources, direction, quality, time of day, mood of light, in English."
+    },
+    "color": {
+      "type": "string",
+      "description": "Palette, dominant hues, saturation, contrast, grading, in English."
+    },
+    "medium": {
+      "type": "string",
+      "description": "Physical or digital medium and texture: oil on canvas, 3D render, photograph, pixel art, etc., in English."
+    },
+    "camera": {
+      "type": "string",
+      "description": "Implied lens, focal length, aperture, film stock or render engine. Empty string if not applicable (e.g. flat illustration)."
+    },
+    "mj_params": {
+      "type": "string",
+      "description": "Midjourney trailing parameters only, e.g. '--ar 3:2 --style raw --stylize 250'. Aspect ratio must match the actual image dimensions given in the metadata."
+    },
+    "sd_positive": {
+      "type": "string",
+      "description": "Stable Diffusion style positive prompt: comma-separated weighted tags rather than prose."
+    },
+    "sd_negative": {
+      "type": "string",
+      "description": "Stable Diffusion negative prompt appropriate for this image type."
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "5 to 12 short keyword tags summarizing the image, for search and filing."
+    }
+  },
+  "required": [
+    "prompt_en",
+    "prompt_zh",
+    "subject",
+    "style",
+    "composition",
+    "lighting",
+    "color",
+    "medium",
+    "camera",
+    "mj_params",
+    "sd_positive",
+    "sd_negative",
+    "tags"
+  ],
+  "additionalProperties": false
+}

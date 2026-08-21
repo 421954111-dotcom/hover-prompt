@@ -1,0 +1,15 @@
+# 本地配置 —— 含桥接 token 和本机绝对路径，绝不进仓库
+bridge/config.json
+
+# 依赖 / 产物（本项目零依赖，留着防手滑）
+node_modules/
+dist/
+*.log
+
+# 系统与编辑器垃圾
+Thumbs.db
+desktop.ini
+.DS_Store
+.vscode/
+.idea/
+*.swp

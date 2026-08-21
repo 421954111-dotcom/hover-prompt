@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+  :root { color-scheme: dark; }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { width:380px; max-height:520px; margin:0; overflow:hidden;
+         font:13px/1.55 -apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+         background:#0f0f11; color:#e8e8ea; display:flex; flex-direction:column; }
+  .top { display:flex; gap:8px; align-items:center; padding:10px; border-bottom:1px solid rgba(255,255,255,.09); }
+  .top input { flex:1; padding:6px 10px; border:1px solid rgba(255,255,255,.14); border-radius:7px;
+               background:rgba(0,0,0,.3); color:#e8e8ea; font:12.5px inherit; }
+  .top input:focus { outline:none; border-color:rgba(255,255,255,.3); }
+  .top button { flex:none; padding:6px 10px; border:1px solid rgba(255,255,255,.14); border-radius:7px;
+                background:rgba(255,255,255,.06); color:#a1a1aa; font-size:12px; cursor:pointer; }
+  .top button:hover { background:rgba(255,255,255,.12); color:#e8e8ea; }
+  .diag { padding:9px 11px; border-bottom:1px solid rgba(255,255,255,.09); font-size:11.5px; line-height:1.6; }
+  .diag.ok { color:#86efac; background:rgba(34,197,94,.09); }
+  .diag.warn { color:#fcd34d; background:rgba(251,191,36,.09); }
+  .diag.bad { color:#fca5a5; background:rgba(248,113,113,.09); }
+  .diag .fix { display:block; margin-top:3px; color:#a1a1aa; }
+  .diag code { padding:1px 4px; border-radius:3px; background:rgba(0,0,0,.35);
+               font-family:ui-monospace,Consolas,monospace; user-select:all; }
+  .list { flex:1; overflow-y:auto; padding:6px; }
+  .list::-webkit-scrollbar { width:8px; }
+  .list::-webkit-scrollbar-thumb { background:rgba(255,255,255,.14); border-radius:4px; }
+  .item { display:flex; gap:9px; padding:8px; border-radius:8px; cursor:pointer; }
+  .item:hover { background:rgba(255,255,255,.06); }
+  .item img { width:42px; height:42px; border-radius:6px; object-fit:cover; flex:none;
+              background:rgba(255,255,255,.06); }
+  .item .c { flex:1; min-width:0; }
+  .item .h { font-size:12px; color:#d4d4d8; line-height:1.5;
+             display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .item .s { margin-top:3px; font-size:11px; color:#71717a;
+             overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .item.copied { background:rgba(34,197,94,.16); }
+  .empty { padding:40px 20px; text-align:center; font-size:12.5px; color:#71717a; line-height:1.7; }
+</style>
+</head>
+<body>
+  <div class="top">
+    <input id="q" placeholder="搜索提示词或标签…">
+    <button id="opt">设置</button>
+  </div>
+  <div class="diag" id="diag">诊断中…</div>
+  <div class="list" id="list"></div>
+<script src="popup.js"></script>
+</body>
+</html>

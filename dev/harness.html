@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>content.js 手动验收台</title>
+<style>
+  body { margin:0; padding:24px; background:#fafaf9; color:#1c1917;
+         font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif; }
+  h1 { font-size:17px; margin:0 0 4px; }
+  .note { font-size:12.5px; color:#78716c; margin:0 0 20px; }
+  .ctl { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; padding:10px 12px;
+         background:#fff; border:1px solid #e7e5e4; border-radius:9px; }
+  .ctl button { padding:5px 11px; border:1px solid #d6d3d1; border-radius:6px;
+                background:#fff; font-size:12.5px; cursor:pointer; }
+  .ctl button.on { background:#1c1917; color:#fff; border-color:#1c1917; }
+  .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+  .cell { background:#fff; border:1px solid #e7e5e4; border-radius:10px; padding:12px; }
+  .cell h3 { margin:0 0 8px; font-size:12px; color:#78716c; font-weight:600; }
+  .cell img, .cell canvas, .cell .bg { display:block; border-radius:6px; }
+  .bg { background-size:cover; background-position:center; }
+  .far { display:flex; justify-content:flex-end; }
+  .tiny { width:32px; height:32px; }
+</style>
+</head>
+<body>
+  <h1>content.js 手动验收台</h1>
+  <p class="note">这不是扩展运行环境，chrome.* 全是桩。用来验 UI：芯片定位、面板翻转、Tab、流式预览、错误态。</p>
+
+  <div class="ctl">
+    <button data-mode="fast" class="on">快速返回</button>
+    <button data-mode="stream">流式（模拟 API Key 后端）</button>
+    <button data-mode="slow">慢（模拟 codex 45s）</button>
+    <button data-mode="cached">缓存命中</button>
+    <button data-mode="err-bridge">错误：桥接没起</button>
+    <button data-mode="err-token-missing">错误：Token 没填</button>
+    <button data-mode="err-token-bad">错误：Token 不对</button>
+  </div>
+
+  <div class="grid">
+    <div class="cell"><h3>普通 img（竖图）</h3><img src="img/tall.jpg" width="220" alt="设计师桌面"></div>
+    <div class="cell"><h3>picture + srcset</h3>
+      <picture><source srcset="img/side.jpg" media="(min-width:1px)"><img src="img/tall.jpg" width="220" alt="srcset 图"></picture>
+    </div>
+    <div class="cell"><h3>CSS background</h3><div class="bg" style="width:220px;height:300px;background-image:url(img/bg.jpg)"></div></div>
+    <div class="cell"><h3>canvas</h3><canvas id="cv" width="220" height="150"></canvas></div>
+    <div class="cell"><h3>小图标（应被忽略）</h3><img class="tiny" src="img/side.jpg" alt="tiny"></div>
+    <div class="cell"><h3>宽扁图</h3><img src="img/side.jpg" width="300" height="110" style="object-fit:cover" alt="宽图"></div>
+    <div class="cell" style="grid-column:1/-1"><h3>贴右边缘（面板应翻到左侧）</h3>
+      <div class="far"><img src="img/tall.jpg" width="200" alt="右侧图"></div></div>
+  </div>
+
+  <h2 style="font-size:15px;margin:28px 0 4px">取图分类验收</h2>
+  <p class="note">这些用来验 content.js 的 acquireLocal()：每类图应被归到正确的 source.kind。
+    跨域用例走 127.0.0.1:8713（与页面的 localhost:8713 不同源，且 python http.server 不发 CORS 头）。</p>
+  <div class="grid" id="acq">
+    <div class="cell"><h3>data: URL</h3><img id="t-data" width="200" alt="data 图"></div>
+    <div class="cell"><h3>blob: URL</h3><img id="t-blob" width="200" alt="blob 图"></div>
+    <div class="cell"><h3>同源 canvas（干净）</h3><canvas id="t-clean" width="200" height="140"></canvas></div>
+    <div class="cell"><h3>跨域绘制的 canvas（污染）</h3><canvas id="t-tainted" width="200" height="140"></canvas></div>
+    <div class="cell"><h3>srcset：currentSrc ≠ src</h3>
+      <img id="t-srcset" width="200" src="img/tall.jpg" srcset="img/side.jpg 1x" alt="srcset 图"></div>
+    <div class="cell"><h3>video：有画面（抓当前帧）</h3>
+      <video id="t-video-live" width="200" height="140" muted loop playsinline style="border-radius:6px"></video></div>
+    <div class="cell"><h3>video：只有 poster（未加载画面）</h3>
+      <video id="t-video" width="200" poster="img/bg.jpg" preload="none" style="border-radius:6px"></video></div>
+    <div class="cell"><h3>video：全黑画面（模拟 DRM）</h3>
+      <video id="t-video-black" width="200" height="140" muted loop playsinline style="border-radius:6px"></video></div>
+    <div class="cell"><h3>相对路径 CSS 背景</h3>
+      <div id="t-relbg" class="bg" style="width:200px;height:140px;background-image:url(./img/bg.jpg)"></div></div>
+    <div class="cell"><h3>无图源的大 div（应被忽略）</h3>
+      <div id="t-nobg" style="width:200px;height:140px;background:#e7e5e4;border-radius:6px"></div></div>
+  </div>
+
+<script>
+// ---- canvas 内容 ----
+(() => {
+  const c = document.getElementById('cv').getContext('2d');
+  const g = c.createLinearGradient(0,0,220,150);
+  g.addColorStop(0,'#f59e0b'); g.addColorStop(1,'#7c3aed');
+  c.fillStyle = g; c.fillRect(0,0,220,150);
+  c.fillStyle = '#fff'; c.font = 'bold 22px sans-serif';
+  c.fillText('CANVAS', 56, 84);
+})();
+
+// ---- 取图分类用例的素材 ----
+window.__acqReady = (async () => {
+  // data: URL
+  const dc = document.createElement('canvas'); dc.width = 200; dc.height = 140;
+  const dx = dc.getContext('2d');
+  dx.fillStyle = '#0ea5e9'; dx.fillRect(0,0,200,140);
+  dx.fillStyle = '#fff'; dx.font = 'bold 18px sans-serif'; dx.fillText('DATA', 68, 78);
+  document.getElementById('t-data').src = dc.toDataURL('image/png');
+
+  // blob: URL
+  const blob = await (await fetch('img/side.jpg')).blob();
+  document.getElementById('t-blob').src = URL.createObjectURL(blob);
+
+  // 干净 canvas（同源绘制）
+  await new Promise(res => {
+    const i = new Image();
+    i.onload = () => { document.getElementById('t-clean').getContext('2d').drawImage(i,0,0,200,140); res(); };
+    i.onerror = res;
+    i.src = 'img/tall.jpg';
+  });
+
+  // 污染 canvas：跨域图（127.0.0.1 ≠ localhost）且不带 crossOrigin
+  await new Promise(res => {
+    const i = new Image();
+    i.onload = () => { document.getElementById('t-tainted').getContext('2d').drawImage(i,0,0,200,140); res(); };
+    i.onerror = res;
+    i.src = 'http://127.0.0.1:8713/dev/img/bg.jpg';
+  });
+
+  // 真视频素材：captureStream(0) 手动推帧，不依赖 rAF（无头环境里 rAF 不回调）
+  async function makeVideo(paint) {
+    const c = document.createElement('canvas'); c.width = 320; c.height = 224;
+    const cx = c.getContext('2d');
+    const stream = c.captureStream(0);
+    const track = stream.getVideoTracks()[0];
+    const rec = new MediaRecorder(stream, { mimeType: 'video/webm' });
+    const chunks = [];
+    rec.ondataavailable = e => e.data.size && chunks.push(e.data);
+    const stopped = new Promise(r => (rec.onstop = r));
+    rec.start();
+    for (let i = 0; i < 4; i++) {
+      paint(cx, i);
+      track.requestFrame();
+      await new Promise(r => setTimeout(r, 120));
+    }
+    rec.stop();
+    await stopped;
+    return URL.createObjectURL(new Blob(chunks, { type: 'video/webm' }));
+  }
+  const load = (el, src) => new Promise(res => {
+    el.onloadeddata = res; el.onerror = res; el.src = src;
+    setTimeout(res, 4000);
+  });
+
+  await load(document.getElementById('t-video-live'), await makeVideo((cx, i) => {
+    const g = cx.createLinearGradient(0, 0, 320, 224);
+    g.addColorStop(0, ['#f59e0b','#ef4444','#8b5cf6','#06b6d4'][i]); g.addColorStop(1, '#111827');
+    cx.fillStyle = g; cx.fillRect(0, 0, 320, 224);
+    cx.fillStyle = '#fff'; cx.font = 'bold 30px sans-serif'; cx.fillText('FRAME ' + i, 70, 120);
+  }));
+  await load(document.getElementById('t-video-black'), await makeVideo((cx) => {
+    cx.fillStyle = '#000'; cx.fillRect(0, 0, 320, 224);      // 模拟 DRM：画得出来，但一片死黑
+  }));
+
+  // 等 srcset 决出 currentSrc
+  await new Promise(r => setTimeout(r, 300));
+  return true;
+})();
+
+// ---- chrome.* 桩 ----
+let MODE = 'fast';
+document.querySelectorAll('.ctl button').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('.ctl button').forEach(x => x.classList.remove('on'));
+    b.classList.add('on');
+    MODE = b.dataset.mode;
+  };
+});
+
+const SAMPLE = {
+  prompt_en: "minimalist design desk still life, warm beige textured background and tabletop, soft natural sunlight streaming from the upper left creating gentle elongated shadows, a fan of rounded rectangular color swatches in ivory sage coral and terracotta standing upright at center, a loose stack of torn paper samples at lower left, matte black graphics tablet with stylus cropped into the lower right foreground, clear glass of water at the right edge, generous negative space above, photorealistic editorial product photography, shallow depth of field, warm filmic grading",
+  prompt_zh: "极简设计师桌面静物，暖米色纹理背景与桌面，柔和自然光自左上方射入形成拉长的柔影，中央立着一组象牙白、鼠尾草绿、珊瑚与陶土色的圆角矩形色卡呈扇形展开，左下方是一叠撕边纸样，右下前景裁入哑光黑数位板与压感笔，右侧边缘有一只透明玻璃水杯，上方留出大面积负空间，照片级编辑类产品摄影，浅景深，温暖胶片调色",
+  subject: "A fan of textured color swatches, torn paper samples, a graphics tablet with stylus, and a glass of water on a minimalist desk.",
+  style: "Photorealistic editorial product still life, minimalist Scandinavian styling, contemporary design-studio aesthetic.",
+  composition: "Vertical 2:3 framing, slightly elevated oblique angle, swatch fan at center, cropped tablet dominating the lower-right foreground, generous negative space in the upper half.",
+  lighting: "Warm natural sunlight from the upper left, softly diffused, gentle directional shadows, restrained highlights on the glass.",
+  color: "Warm cream and beige base with dusty coral, muted sage, ivory and matte black accents; low saturation, soft contrast.",
+  medium: "High-resolution photograph with visible plaster, fibrous paper, matte plastic and glass textures.",
+  camera: "Full-frame, ~50mm, f/4, moderate depth of field, fine-grain warm filmic rendering.",
+  mj_params: "--ar 2:3 --style raw --stylize 125",
+  sd_positive: "(photorealistic editorial still life:1.35), (minimalist designer desk:1.25), fan of textured color swatches, torn paper samples, matte black graphics tablet, stylus, glass of water, warm off-white tabletop, textured beige wall, (warm sunlight from upper left:1.3), soft shadows, Scandinavian styling, premium catalog photography, vertical composition, finely detailed",
+  sd_negative: "people, hands, text, logo, watermark, clutter, extra objects, vivid neon colors, cool blue lighting, harsh flash, blown highlights, extreme bokeh, wide-angle distortion, low resolution, oversaturated, illustration, cartoon, CGI look, border",
+  tags: ["product still life","color swatches","graphics tablet","minimalist desk","warm sunlight","Scandinavian","neutral palette","editorial"],
+  _meta: { backend:"codex", model:"gpt-5.4-mini", ms:45120, usage:{input_tokens:17071,output_tokens:770} }
+};
+
+const SETTINGS = {
+  bridgeUrl:'http://127.0.0.1:8712', token:'stub',
+  triggers:{ chip:true, altHover:true, contextMenu:false, autoHover:false },
+  minSize:96, siteMode:'blacklist', blacklist:[], whitelist:[], cacheEnabled:true
+};
+
+window.chrome = {
+  runtime: {
+    id: 'stubextensionidstubextensionid00',
+    // ?nosw 模拟 service worker 没醒：sendMessage 直接抛，用来验兜底设置那条路
+    sendMessage: async (m) => {
+      if (new URLSearchParams(location.search).has('nosw')) {
+        throw new Error('Could not establish connection. Receiving end does not exist.');
+      }
+      return m.t === 'getSettings' ? SETTINGS : {};
+    },
+    onMessage: { addListener(){} },
+    connect: () => {
+      const listeners = [];
+      const post = (t, d) => listeners.forEach(f => f({ t, ...d }));
+      queueMicrotask(() => run(post));
+      return {
+        onMessage:{ addListener: f => listeners.push(f) },
+        // content.js 会把 acquireLocal() 的产物当 source 发过来，截下来做断言
+        postMessage(msg){ window.__lastGen = msg; },
+        disconnect(){},
+      };
+    },
+  },
+  storage: { local:{ get: async()=>({}), set: async()=>{} }, onChanged:{ addListener(){} } },
+};
+
+// 测试侧劫持（只存在于验收台，扩展本体不受影响）：
+//   1. content.js 用的是 closed shadow root，强制开成 open 并存下句柄
+//   2. 无头/不合成帧的环境里 rAF 永远不回调，把它打成同步的，
+//      这样滚动跟随那条链（scroll → 更新 anchorRect → place）才测得到
+(() => {
+  const orig = Element.prototype.attachShadow;
+  Element.prototype.attachShadow = function (init) {
+    const r = orig.call(this, { ...init, mode: 'open' });
+    window.__shadow = r;
+    return r;
+  };
+  if (new URLSearchParams(location.search).has('syncraf')) {
+    window.requestAnimationFrame = (fn) => { fn(performance.now()); return 0; };
+  }
+})();
+
+async function run(post) {
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  post('status', { phase:'grabbing' });
+  await sleep(250);
+  post('status', { phase:'grabbed', w:683, h:1024, trail:['sw-fetch'] });
+
+  if (MODE === 'cached') { await sleep(80); post('done', { data:SAMPLE, cached:true }); return; }
+  if (MODE === 'err-bridge') { await sleep(300); post('error', { message:'连不上本地桥接服务', hint:'bridge' }); return; }
+  if (MODE === 'err-token-missing') { await sleep(300); post('error', { message:'还没配置 Token', hint:'token-missing' }); return; }
+  if (MODE === 'err-token-bad') { await sleep(300); post('error', { message:'Token 不对', hint:'token-bad' }); return; }
+
+  post('status', { phase:'starting' });
+  await sleep(400);
+
+  if (MODE === 'stream') {
+    const full = JSON.stringify(SAMPLE);
+    for (let i = 0; i < full.length; i += 24) {
+      post('token', { delta: full.slice(i, i + 24) });
+      await sleep(18);
+    }
+    post('done', { data:SAMPLE, cached:false });
+    return;
+  }
+
+  const total = MODE === 'slow' ? 45000 : 2500;
+  for (let t = 0; t < total; t += 2000) { post('status', { phase:'thinking' }); await sleep(2000); }
+  post('done', { data:SAMPLE, cached:false });
+}
+</script>
+<script src="../extension/content.js"></script>
+</body>
+</html>

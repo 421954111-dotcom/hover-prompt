@@ -1,0 +1,23 @@
+{
+  "_comment": "复制成 config.json 即可；留空的字段会在首次运行时自动填好（token 随机生成，codex.bin 自动探测）。",
+
+  "port": 8712,
+  "token": "",
+  "backend": "auto",
+  "allowedExtensionIds": [],
+  "timeoutMs": 150000,
+  "maxConcurrent": 2,
+
+  "codex": {
+    "bin": "",
+    "model": "gpt-5.4-mini",
+    "reasoningEffort": "low",
+    "disableFeatures": ["skill_search", "memories", "plugins"]
+  },
+
+  "openai": {
+    "apiKey": "",
+    "model": "gpt-5.4-mini",
+    "baseUrl": "https://api.openai.com/v1"
+  }
+}

@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>读取提示词 · 设置</title>
+<style>
+  :root { color-scheme: light dark; }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin:0; padding:28px 24px 40px; font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;
+         background:#0f0f11; color:#e8e8ea; }
+  .wrap { max-width:620px; margin:0 auto; }
+  h1 { margin:0 0 4px; font-size:19px; font-weight:600; }
+  .sub { margin:0 0 26px; font-size:12.5px; color:#71717a; }
+  fieldset { margin:0 0 18px; padding:16px 18px; border:1px solid rgba(255,255,255,.1); border-radius:10px;
+             background:rgba(255,255,255,.02); }
+  legend { padding:0 7px; font-size:12px; font-weight:600; color:#a1a1aa; text-transform:uppercase; letter-spacing:.05em; }
+  label.row { display:block; margin-bottom:12px; }
+  label.row:last-child { margin-bottom:0; }
+  label.row .lbl { display:block; margin-bottom:5px; font-size:12.5px; color:#a1a1aa; }
+  input[type=text], input[type=password], input[type=number], textarea, select {
+    width:100%; padding:7px 10px; border:1px solid rgba(255,255,255,.14); border-radius:7px;
+    background:rgba(0,0,0,.3); color:#e8e8ea; font:13px/1.5 inherit; font-family:ui-monospace,Consolas,monospace; }
+  textarea { min-height:64px; resize:vertical; }
+  input:focus, textarea:focus, select:focus { outline:none; border-color:rgba(255,255,255,.34); }
+  label.chk { display:flex; align-items:flex-start; gap:9px; margin-bottom:10px; cursor:pointer; }
+  label.chk:last-child { margin-bottom:0; }
+  label.chk input { margin:3px 0 0; flex:none; }
+  label.chk .t { font-size:13px; }
+  label.chk .d { font-size:11.5px; color:#71717a; line-height:1.5; }
+  .btns { display:flex; gap:9px; align-items:center; margin-top:14px; flex-wrap:wrap; }
+  button { padding:7px 15px; border:1px solid rgba(255,255,255,.16); border-radius:7px;
+           background:rgba(255,255,255,.07); color:#e8e8ea; font-size:13px; cursor:pointer; }
+  button:hover { background:rgba(255,255,255,.13); }
+  button.primary { background:#2563eb; border-color:#2563eb; }
+  button.primary:hover { background:#1d4ed8; }
+  .status { font-size:12px; color:#71717a; }
+  .status.ok { color:#86efac; }
+  .status.bad { color:#fca5a5; }
+  code { padding:1px 5px; border-radius:4px; background:rgba(255,255,255,.08);
+         font-family:ui-monospace,Consolas,monospace; font-size:12px; user-select:all; }
+  .hint { margin-top:7px; font-size:11.5px; color:#71717a; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>读取提示词</h1>
+  <p class="sub">悬浮在图片上反推生成提示词。模型调用走本机桥接服务。</p>
+
+  <fieldset>
+    <legend>桥接</legend>
+    <label class="row"><span class="lbl">地址</span><input type="text" id="bridgeUrl" placeholder="http://127.0.0.1:8712"></label>
+    <label class="row"><span class="lbl">Token（从 bridge/config.json 或桥接启动日志里拷）</span><input type="password" id="token" placeholder="粘贴 token"></label>
+    <div class="btns">
+      <button id="test">测试连接</button>
+      <span class="status" id="testStatus"></span>
+    </div>
+    <div class="hint">本扩展 ID：<code id="extId"></code> — 想再收紧一层就把它填进 <code>bridge/config.json</code> 的 <code>allowedExtensionIds</code>。</div>
+  </fieldset>
+
+  <fieldset>
+    <legend>触发方式</legend>
+    <label class="chk"><input type="checkbox" id="tr-chip"><span><span class="t">悬浮出小按钮，点击才生成</span><br><span class="d">停留 400ms 后图片角上浮出芯片，点了才真正调用模型。</span></span></label>
+    <label class="chk"><input type="checkbox" id="tr-alt"><span><span class="t">Alt + 悬浮 直接生成</span><br><span class="d">按住 Alt 悬浮即刻触发，跳过点击。</span></span></label>
+    <label class="chk"><input type="checkbox" id="tr-menu"><span><span class="t">右键菜单</span><br><span class="d">在图片上右键 →「生成提示词」，兜住悬浮探测漏掉的图。</span></span></label>
+    <label class="chk"><input type="checkbox" id="tr-auto"><span><span class="t">悬浮 0.4 秒自动生成</span><br><span class="d">最省事，但滚动浏览时会疯狂触发，订阅额度消耗很快。</span></span></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>范围</legend>
+    <label class="row"><span class="lbl">忽略小于这个尺寸的图片（px）</span><input type="number" id="minSize" min="16" max="1000"></label>
+    <label class="row"><span class="lbl">站点模式</span>
+      <select id="siteMode"><option value="blacklist">黑名单（除列出的站点外都启用）</option><option value="whitelist">白名单（只在列出的站点启用）</option></select>
+    </label>
+    <label class="row"><span class="lbl">站点列表，一行一个域名</span><textarea id="siteList" placeholder="example.com"></textarea></label>
+  </fieldset>
+
+  <fieldset>
+    <legend>缓存</legend>
+    <label class="chk"><input type="checkbox" id="cacheEnabled"><span><span class="t">按图片内容缓存结果</span><br><span class="d">同一张图第二次悬浮瞬间出结果，不重复消耗额度。上限 300 条。</span></span></label>
+    <div class="btns">
+      <button id="clear">清空缓存</button>
+      <span class="status" id="clearStatus"></span>
+    </div>
+  </fieldset>
+
+  <div class="btns">
+    <button class="primary" id="save">保存</button>
+    <span class="status" id="saveStatus"></span>
+  </div>
+</div>
+<script src="options.js"></script>
+</body>
+</html>
